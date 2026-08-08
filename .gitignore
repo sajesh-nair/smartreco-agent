@@ -1,0 +1,19 @@
+# Sensitive keys & local env files
+.env
+.env.local
+*.env
+
+# Python artifacts
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Local databases & Chroma indexes
+chroma_db/
+*.sqlite3
+
+# Node dependencies & builds
+node_modules/
+dist/
+build/
