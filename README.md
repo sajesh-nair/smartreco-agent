@@ -16,7 +16,7 @@ Aura Academy captures live clickstream events asynchronously without introducing
 ### System Architecture & Data Flow
 
 ```mermaid
-flowchart TD
+flowchart LR
     subgraph Client ["Frontend (React)"]
         UI[User Interactions / Clicks]
         Stream[Live Learning Activity Panel]
