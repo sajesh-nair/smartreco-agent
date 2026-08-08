@@ -1,7 +1,190 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
 const API_BASE = 'http://localhost:8000/api';
+
+// ============================================================================
+// 1. Vector Icon Assets
+// ============================================================================
+
+const Icons = {
+  Search: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  ),
+  Sparkles: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+    </svg>
+  ),
+  Star: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="1">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  ),
+  GraduationCap: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+      <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+    </svg>
+  ),
+  PlusAdmin: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  )
+};
+
+// ============================================================================
+// 2. Elite Aligned Header Component
+// ============================================================================
+
+const Navbar = ({ user, isAuthenticated, searchQuery, onSearchChange, onOpenAuth, onLogout, onOpenAdmin }) => {
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const getInitials = (email) => {
+    if (!email || email === 'Guest Visitor') return 'G';
+    return email.substring(0, 2).toUpperCase();
+  };
+
+  return (
+    <header style={styles.navbar}>
+      <div style={styles.navbarInner}>
+        {/* Brand Group */}
+        <div style={styles.brandGroup}>
+          <div style={styles.logoBadge}>
+            <Icons.GraduationCap />
+          </div>
+          <div style={styles.brandTextGroup}>
+            <span style={styles.brandTitle}>Aura Academy</span>
+            <span style={styles.brandSubtitle}>AI LEARNING MARKETPLACE</span>
+          </div>
+        </div>
+
+        {/* Centered Search Bar */}
+        <div style={styles.searchWrapper}>
+          <span style={styles.searchIcon}><Icons.Search /></span>
+          <input
+            type="text"
+            placeholder="Search courses, skill paths, instructors..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            style={styles.searchInput}
+          />
+        </div>
+
+        {/* Right Action Group */}
+        <div style={styles.navRightGroup}>
+          {isAuthenticated && user.role === 'admin' && (
+            <button style={styles.adminBtn} onClick={onOpenAdmin}>
+              <Icons.PlusAdmin /> Add Course
+            </button>
+          )}
+
+          <div style={{ position: 'relative' }} ref={menuRef}>
+            {isAuthenticated ? (
+              <button
+                style={styles.avatarCircle}
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                title={user.email}
+              >
+                {getInitials(user.email)}
+              </button>
+            ) : (
+              <button style={styles.signInBtn} onClick={onOpenAuth}>
+                Sign in
+              </button>
+            )}
+
+            {showUserMenu && isAuthenticated && (
+              <div style={styles.profileDropdown}>
+                <div style={styles.dropdownUserRow}>
+                  <div style={styles.dropdownAvatar}>{getInitials(user.email)}</div>
+                  <div style={styles.dropdownTextGroup}>
+                    <span style={styles.dropdownEmail}>{user.email}</span>
+                    <span style={styles.dropdownRoleBadge}>
+                      {user.role.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+                <div style={styles.dropdownDivider} />
+                <button
+                  style={styles.dropdownItem}
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    onOpenAuth();
+                  }}
+                >
+                  Switch Role / Account
+                </button>
+                <button
+                  style={{ ...styles.dropdownItem, color: '#f87171' }}
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    onLogout();
+                  }}
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+// ============================================================================
+// 3. Course Card Component
+// ============================================================================
+
+const CourseCard = ({ course, onHover, onSelect }) => (
+  <div
+    style={styles.courseCard}
+    onMouseEnter={() => onHover(course.title)}
+    onClick={() => onSelect(course)}
+  >
+    <div style={styles.cardMetaHeader}>
+      <span style={styles.categoryBadge}>{course.category}</span>
+      <span style={styles.levelBadge}>{course.level || 'Advanced'}</span>
+    </div>
+
+    <h3 style={styles.cardTitle}>{course.title}</h3>
+    <p style={styles.cardDesc}>{course.description}</p>
+
+    <div style={styles.tagGroup}>
+      {(course.tags || []).map((t, idx) => (
+        <span key={idx} style={styles.tagPill}>#{t}</span>
+      ))}
+    </div>
+
+    <div style={styles.cardFooter}>
+      <div style={styles.ratingBox}>
+        <Icons.Star />
+        <span style={styles.ratingValue}>{course.rating || '4.9'}</span>
+        <span style={styles.studentCount}>({course.students || '1.2k'})</span>
+      </div>
+      <div style={styles.priceTag}>₹{course.price}</div>
+    </div>
+  </div>
+);
+
+// ============================================================================
+// 4. Main App Component
+// ============================================================================
 
 export default function App() {
   const [courses, setCourses] = useState([]);
@@ -10,50 +193,57 @@ export default function App() {
   const [telemetry, setTelemetry] = useState([]);
   const [recommendation, setRecommendation] = useState(null);
   const [loadingAgent, setLoadingAgent] = useState(false);
-  const [sessionId] = useState(() => 'session_' + Math.random().toString(36).substring(2, 9));
+  const [sessionId] = useState(() => 'sess_' + Math.random().toString(36).substring(2, 9));
 
-  // --- Auth & Role State ---
-  const [currentUser, setCurrentUser] = useState({ email: 'user@example.com', role: 'user', token: null });
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginRole, setLoginRole] = useState('user');
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [currentUser, setCurrentUser] = useState({
+    email: 'sajesh.nair.ai@gmail.com',
+    role: 'admin',
+    token: 'prod_token'
+  });
 
-  // --- Admin Modal State ---
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('sajesh.nair.ai@gmail.com');
+  const [loginPassword, setLoginPassword] = useState('••••••••');
+  const [loginRole, setLoginRole] = useState('admin');
+
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [newProduct, setNewProduct] = useState({
     id: '',
     title: '',
     category: 'Agentic AI',
-    level: 'Intermediate',
-    price: 3999,
+    level: 'Advanced',
+    price: 4999,
     description: '',
-    tags: ['Agent', 'AI']
+    tags: ['Agentic', 'LangGraph']
   });
 
   useEffect(() => {
-    fetchCourses();
-    trackEvent('Session_Init', 'platform', { referrer: 'direct', user_role: currentUser.role });
+    fetchCatalog();
+    trackEvent('Session_Init', 'platform_boot', { referrer: 'direct' });
   }, []);
 
-  const fetchCourses = async () => {
+  const fetchCatalog = async () => {
     try {
       const res = await axios.get(`${API_BASE}/courses`);
       setCourses(res.data);
     } catch (err) {
-      console.error('Failed to fetch catalog:', err);
+      console.error('Catalog fetch error:', err);
     }
   };
 
-  const trackEvent = (eventType, targetId, metadata = {}) => {
+  const trackEvent = useCallback((eventType, targetId, metadata = {}) => {
     const payload = {
       session_id: sessionId,
       event_type: eventType,
       target_id: targetId,
-      metadata: { ...metadata, user_role: currentUser.role, email: currentUser.email }
+      metadata: { ...metadata, user_role: currentUser.role, user_email: currentUser.email }
     };
 
-    setTelemetry((prev) => [{ ...payload, timestamp: new Date().toLocaleTimeString() }, ...prev.slice(0, 19)]);
+    setTelemetry((prev) => [
+      { ...payload, timestamp: new Date().toLocaleTimeString() },
+      ...prev.slice(0, 24)
+    ]);
 
     if (navigator.sendBeacon) {
       const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
@@ -61,7 +251,7 @@ export default function App() {
     } else {
       axios.post(`${API_BASE}/track`, payload).catch(() => {});
     }
-  };
+  }, [sessionId, currentUser]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -71,28 +261,31 @@ export default function App() {
         password: loginPassword,
         role: loginRole
       });
-      setCurrentUser({
-        email: res.data.email,
-        role: res.data.role,
-        token: res.data.access_token
-      });
-      setShowLoginModal(false);
-      trackEvent('User_Login', res.data.email, { role: res.data.role });
+      setCurrentUser({ email: res.data.email, role: res.data.role, token: res.data.access_token });
+      setIsAuthenticated(true);
+      setShowAuthModal(false);
+      trackEvent('User_Login_Success', res.data.email, { role: res.data.role });
     } catch (err) {
-      alert('Login failed. Please check credentials.');
+      alert('Login error.');
     }
   };
 
-  const handleAddProduct = async (e) => {
+  const handleLogout = () => {
+    trackEvent('User_Logout', currentUser.email);
+    setIsAuthenticated(false);
+    setCurrentUser({ email: 'Guest Visitor', role: 'guest', token: null });
+  };
+
+  const handleCreateProduct = async (e) => {
     e.preventDefault();
     try {
       await axios.post(`${API_BASE}/admin/product`, newProduct);
-      alert('Product created via Dual-Write (SQL DB + ChromaDB)!');
+      alert('Course added to Aura Academy catalog!');
       setShowAdminModal(false);
-      fetchCourses();
-      trackEvent('Admin_Product_Created', newProduct.id, { title: newProduct.title });
+      fetchCatalog();
+      trackEvent('Admin_Course_Created', newProduct.id, { title: newProduct.title });
     } catch (err) {
-      alert('Failed to create product. Make sure backend is running.');
+      alert('Error creating course.');
     }
   };
 
@@ -106,7 +299,7 @@ export default function App() {
       });
       setRecommendation(res.data);
     } catch (err) {
-      console.error('Recommendation engine failed:', err);
+      console.error('Advisor execution error:', err);
     } finally {
       setLoadingAgent(false);
     }
@@ -115,70 +308,44 @@ export default function App() {
   const categories = ['All', 'Agentic AI', 'Generative AI', 'MLOps', 'Data Engineering', 'Cloud & DevOps'];
 
   const filteredCourses = courses.filter((c) => {
-    const matchesCategory = selectedCategory === 'All' || c.category === selectedCategory;
-    const matchesSearch =
+    const matchCategory = selectedCategory === 'All' || c.category === selectedCategory;
+    const matchSearch =
       c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return matchCategory && matchSearch;
   });
 
   return (
-    <div style={styles.appContainer}>
-      {/* --- Top Navigation Header --- */}
-      <header style={styles.navbar}>
-        <div style={styles.brandGroup}>
-          <h1 style={styles.logoTitle}>⚡ SmartReco</h1>
-          <span style={styles.badge}>MESH API AGENTIC ENGINE</span>
-        </div>
+    <div style={styles.appShell}>
+      <Navbar
+        user={currentUser}
+        isAuthenticated={isAuthenticated}
+        searchQuery={searchQuery}
+        onSearchChange={(q) => {
+          setSearchQuery(q);
+          if (q.length > 2) trackEvent('Catalog_Search', q);
+        }}
+        onOpenAuth={() => setShowAuthModal(true)}
+        onLogout={handleLogout}
+        onOpenAdmin={() => setShowAdminModal(true)}
+      />
 
-        <input
-          type="text"
-          placeholder="Search catalog, vector topics, agentic tools..."
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            if (e.target.value.length > 2) {
-              trackEvent('Catalog_Search', e.target.value);
-            }
-          }}
-          style={styles.searchInput}
-        />
-
-        <div style={styles.headerControls}>
-          {/* Auth & Role Switcher */}
-          <button style={styles.authBtn} onClick={() => setShowLoginModal(true)}>
-            👤 {currentUser.email} ({currentUser.role.toUpperCase()})
-          </button>
-
-          {/* Admin Dual-Write Action Button */}
-          {currentUser.role === 'admin' && (
-            <button style={styles.adminBtn} onClick={() => setShowAdminModal(true)}>
-              ➕ Admin: Add Product (Dual-Write)
-            </button>
-          )}
-
-          <button style={styles.agentTriggerBtn} onClick={() => triggerAgent()} disabled={loadingAgent}>
-            {loadingAgent ? 'Reasoning...' : '✨ Trigger Agent'}
-          </button>
-        </div>
-      </header>
-
-      {/* --- Main Dashboard Body --- */}
-      <div style={styles.mainLayout}>
-        {/* Left: Product Catalog */}
-        <section style={styles.catalogSection}>
-          <div style={styles.categoryBar}>
+      <main style={styles.mainContainer}>
+        {/* Main Course Catalog */}
+        <section style={styles.catalogColumn}>
+          <div style={styles.categoryFilterRow}>
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => {
                   setSelectedCategory(cat);
-                  trackEvent('Category_Filter_Selected', cat);
+                  trackEvent('Category_Filter_Applied', cat);
                 }}
                 style={{
                   ...styles.categoryPill,
-                  backgroundColor: selectedCategory === cat ? '#6366f1' : '#1e293b',
-                  color: selectedCategory === cat ? '#fff' : '#94a3b8'
+                  backgroundColor: selectedCategory === cat ? 'rgba(99, 102, 241, 0.25)' : 'rgba(17, 24, 39, 0.6)',
+                  color: selectedCategory === cat ? '#f8fafc' : '#94a3b8',
+                  borderColor: selectedCategory === cat ? '#6366f1' : 'rgba(255, 255, 255, 0.08)'
                 }}
               >
                 {cat}
@@ -186,80 +353,77 @@ export default function App() {
             ))}
           </div>
 
-          <div style={styles.cardGrid}>
+          <div style={styles.courseGrid}>
             {filteredCourses.map((course) => (
-              <div
+              <CourseCard
                 key={course.id}
-                style={styles.courseCard}
-                onMouseEnter={() => trackEvent('Card_Dwell_Hover', course.title)}
-                onClick={() => {
-                  trackEvent('Course_Selected', course.title, { price: course.price });
-                  triggerAgent(course.id);
+                course={course}
+                onHover={(title) => trackEvent('Card_Dwell_Hover', title)}
+                onSelect={(c) => {
+                  trackEvent('Course_Selected', c.title, { price: c.price });
+                  triggerAgent(c.id);
                 }}
-              >
-                <div style={styles.cardHeader}>
-                  <span style={styles.cardCategory}>{course.category}</span>
-                  <span style={styles.cardLevel}>{course.level}</span>
-                </div>
-                <h3 style={styles.cardTitle}>{course.title}</h3>
-                <p style={styles.cardDesc}>{course.description}</p>
-                <div style={styles.tagGroup}>
-                  {(course.tags || []).map((t, idx) => (
-                    <span key={idx} style={styles.tag}>#{t}</span>
-                  ))}
-                </div>
-                <div style={styles.cardFooter}>
-                  <span style={styles.rating}>★ {course.rating || '4.8'}</span>
-                  <span style={styles.price}>₹{course.price}</span>
-                </div>
-              </div>
+              />
             ))}
           </div>
         </section>
 
-        {/* Right: Agent Recommendation & Real-Time Telemetry Stream */}
-        <aside style={styles.sidebar}>
-          {/* Agent Pitch Box */}
-          <div style={styles.agentBox}>
-            <div style={styles.agentHeader}>
-              <span style={styles.agentLabel}>🤖 AGENT RECOMMENDATION</span>
-              <span style={styles.meshBadge}>MESH API</span>
+        {/* AI Learning Advisor Observatory Sidebar */}
+        <aside style={styles.sidebarColumn}>
+          {/* Personalized Advisor Recommendation */}
+          <div style={styles.agentCard}>
+            <div style={styles.agentCardHeader}>
+              <div style={styles.agentTitleGroup}>
+                <span style={styles.pulseDot} />
+                <span style={styles.agentTitleText}>PERSONALIZED AI ADVISOR</span>
+              </div>
             </div>
-            <p style={styles.agentPitch}>
-              {recommendation ? recommendation.persuasive_story : 'Select courses or filters to build session telemetry signals for Mesh API reasoning.'}
+            <p style={styles.agentPitchText}>
+              {recommendation ? recommendation.persuasive_story : 'Explore courses or filter topics to trigger custom AI learning recommendations based on your activity.'}
             </p>
+            <button
+              style={styles.triggerBtnFull}
+              onClick={() => triggerAgent()}
+              disabled={loadingAgent}
+            >
+              <Icons.Sparkles />
+              <span>{loadingAgent ? 'Analyzing Learning Signals...' : 'Generate Personal AI Pitch'}</span>
+            </button>
           </div>
 
-          {/* Inferred User Intent */}
-          <div style={styles.intentBox}>
-            <span style={styles.intentLabel}>🎯 Inferred User Intent</span>
-            <p style={styles.intentText}>{recommendation ? recommendation.inferred_intent : 'Awaiting behavioral activity...'}</p>
-          </div>
-
-          {/* Micro-Interaction Telemetry Stream */}
-          <div style={styles.telemetryBox}>
-            <div style={styles.telemetryHeader}>
-              <span>⚡ Telemetry Stream ({telemetry.length})</span>
-              <span style={{ color: '#22c55e', fontSize: '12px' }}>● live</span>
+          {/* Inferred Learning Intent */}
+          <div style={styles.intentCard}>
+            <span style={styles.sidebarSectionLabel}>CURRENT LEARNING FOCUS</span>
+            <div style={styles.intentText}>
+              {recommendation ? recommendation.inferred_intent : 'Analyzing your browsing patterns...'}
             </div>
-            <div style={styles.telemetryLog}>
-              {telemetry.map((t, i) => (
-                <div key={i} style={styles.telemetryItem}>
-                  <span style={styles.telemetryType}>{t.event_type}</span>
-                  <span style={styles.telemetryTarget}>{t.target_id}</span>
+          </div>
+
+          {/* Live Activity Stream */}
+          <div style={styles.telemetryCard}>
+            <div style={styles.telemetryHeader}>
+              <span>Live Learning Activity ({telemetry.length})</span>
+              <span style={styles.liveIndicator}>● Active</span>
+            </div>
+            <div style={styles.telemetryLogList}>
+              {telemetry.map((item, idx) => (
+                <div key={idx} style={styles.telemetryRow}>
+                  <span style={styles.eventTypeTag}>{item.event_type}</span>
+                  <span style={styles.eventTargetText}>{item.target_id}</span>
+                  <span style={styles.eventTimeText}>{item.timestamp}</span>
                 </div>
               ))}
             </div>
           </div>
         </aside>
-      </div>
+      </main>
 
-      {/* --- Login / Role Modal --- */}
-      {showLoginModal && (
+      {/* Auth Modal */}
+      {showAuthModal && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
-            <h3>Sign In & Choose Role</h3>
-            <form onSubmit={handleLogin} style={styles.modalForm}>
+          <div style={styles.modalBox}>
+            <h3 style={styles.modalTitle}>Account Sign In</h3>
+            <form onSubmit={handleLogin} style={styles.formStack}>
               <input
                 type="email"
                 placeholder="Email Address"
@@ -281,27 +445,27 @@ export default function App() {
                 onChange={(e) => setLoginRole(e.target.value)}
                 style={styles.modalInput}
               >
-                <option value="user">Regular User (Browses & Receives Recommendations)</option>
-                <option value="admin">Admin User (Manages Catalog & Dual-Write DB)</option>
+                <option value="user">Student / Learner</option>
+                <option value="admin">Platform Instructor / Admin</option>
               </select>
               <div style={styles.modalActions}>
-                <button type="submit" style={styles.submitBtn}>Sign In</button>
-                <button type="button" onClick={() => setShowLoginModal(false)} style={styles.cancelBtn}>Cancel</button>
+                <button type="submit" style={styles.btnPrimaryFull}>Sign In</button>
+                <button type="button" onClick={() => setShowAuthModal(false)} style={styles.btnCancel}>Cancel</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* --- Admin Add Product Modal (Dual-Write) --- */}
+      {/* Admin Add Course Modal */}
       {showAdminModal && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
-            <h3>Admin: Add Product (Dual-Write to SQL + Vector DB)</h3>
-            <form onSubmit={handleAddProduct} style={styles.modalForm}>
+          <div style={styles.modalBox}>
+            <h3 style={styles.modalTitle}>Publish New Course</h3>
+            <form onSubmit={handleCreateProduct} style={styles.formStack}>
               <input
                 type="text"
-                placeholder="Product ID (e.g. course-rag-pro)"
+                placeholder="Course ID (e.g. course-rag-pro)"
                 value={newProduct.id}
                 onChange={(e) => setNewProduct({ ...newProduct, id: e.target.value })}
                 required
@@ -334,15 +498,15 @@ export default function App() {
                 style={styles.modalInput}
               />
               <textarea
-                placeholder="Description"
+                placeholder="Course Description & Learning Outcomes"
                 value={newProduct.description}
                 onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
                 required
-                style={{ ...styles.modalInput, height: '80px' }}
+                style={{ ...styles.modalInput, height: '80px', resize: 'none' }}
               />
               <div style={styles.modalActions}>
-                <button type="submit" style={styles.submitBtn}>Sync Dual-Write DB</button>
-                <button type="button" onClick={() => setShowAdminModal(false)} style={styles.cancelBtn}>Cancel</button>
+                <button type="submit" style={styles.btnPrimaryFull}>Publish Course</button>
+                <button type="button" onClick={() => setShowAdminModal(false)} style={styles.btnCancel}>Cancel</button>
               </div>
             </form>
           </div>
@@ -352,54 +516,279 @@ export default function App() {
   );
 }
 
-// Inline CSS Styles for Modern UI
+// ============================================================================
+// 5. Perfectly Aligned Header & Styling System
+// ============================================================================
+
 const styles = {
-  appContainer: { backgroundColor: '#0f172a', color: '#f8fafc', minHeight: '100vh', fontFamily: 'Inter, sans-serif' },
-  navbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 32px', backgroundColor: '#1e293b', borderBottom: '1px solid #334155' },
+  appShell: {
+    backgroundColor: '#0b0f17',
+    backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(99, 102, 241, 0.08), transparent 70%)',
+    color: '#f8fafc',
+    minHeight: '100vh',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif',
+    WebkitFontSmoothing: 'antialiased'
+  },
+  navbar: {
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+    position: 'sticky',
+    top: 0,
+    zIndex: 100
+  },
+  navbarInner: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '14px 36px',
+    maxWidth: '1600px',
+    margin: '0 auto',
+    boxSizing: 'border-box'
+  },
   brandGroup: { display: 'flex', alignItems: 'center', gap: '12px' },
-  logoTitle: { fontSize: '20px', fontWeight: 'bold', margin: 0, color: '#38bdf8' },
-  badge: { fontSize: '10px', backgroundColor: '#312e81', color: '#818cf8', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold' },
-  searchInput: { backgroundColor: '#0f172a', border: '1px solid #334155', color: '#fff', padding: '8px 16px', borderRadius: '6px', width: '320px' },
-  headerControls: { display: 'flex', gap: '12px', alignItems: 'center' },
-  authBtn: { backgroundColor: '#334155', border: 'none', color: '#f8fafc', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' },
-  adminBtn: { backgroundColor: '#059669', border: 'none', color: '#fff', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' },
-  agentTriggerBtn: { backgroundColor: '#4f46e5', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' },
-  mainLayout: { display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', padding: '24px 32px' },
-  catalogSection: { display: 'flex', flexDirection: 'column', gap: '20px' },
-  categoryBar: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
-  categoryPill: { border: 'none', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' },
-  cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' },
-  courseCard: { backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '20px', cursor: 'pointer', transition: 'transform 0.2s' },
-  cardHeader: { display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#818cf8', marginBottom: '8px' },
-  cardCategory: { fontWeight: 'bold', textTransform: 'uppercase' },
-  cardLevel: { color: '#94a3b8' },
-  cardTitle: { fontSize: '16px', margin: '0 0 8px 0', color: '#f8fafc' },
-  cardDesc: { fontSize: '13px', color: '#94a3b8', lineHeight: '1.4', height: '54px', overflow: 'hidden' },
-  tagGroup: { display: 'flex', gap: '6px', margin: '12px 0' },
-  tag: { fontSize: '10px', backgroundColor: '#0f172a', padding: '2px 6px', borderRadius: '4px', color: '#38bdf8' },
-  cardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' },
-  rating: { color: '#f59e0b', fontSize: '13px', fontWeight: 'bold' },
-  price: { fontSize: '18px', fontWeight: 'bold', color: '#38bdf8' },
-  sidebar: { display: 'flex', flexDirection: 'column', gap: '16px' },
-  agentBox: { backgroundColor: '#1e1b4b', border: '1px solid #4338ca', borderRadius: '12px', padding: '16px' },
-  agentHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px' },
-  agentLabel: { fontSize: '11px', color: '#818cf8', fontWeight: 'bold' },
-  meshBadge: { fontSize: '10px', backgroundColor: '#312e81', color: '#a5b4fc', padding: '2px 6px', borderRadius: '4px' },
-  agentPitch: { fontSize: '13px', lineHeight: '1.5', color: '#e0e7ff', margin: 0 },
-  intentBox: { backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '14px' },
-  intentLabel: { fontSize: '11px', color: '#94a3b8', fontWeight: 'bold' },
-  intentText: { fontSize: '12px', color: '#38bdf8', marginTop: '6px', margin: 0 },
-  telemetryBox: { backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '14px' },
-  telemetryHeader: { display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 'bold', marginBottom: '10px' },
-  telemetryLog: { display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' },
-  telemetryItem: { display: 'flex', justifyContent: 'space-between', backgroundColor: '#0f172a', padding: '6px 10px', borderRadius: '6px', fontSize: '11px' },
-  telemetryType: { color: '#38bdf8', fontWeight: 'bold' },
-  telemetryTarget: { color: '#94a3b8', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modalContent: { backgroundColor: '#1e293b', padding: '28px', borderRadius: '12px', width: '400px', border: '1px solid #334155' },
-  modalForm: { display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' },
-  modalInput: { backgroundColor: '#0f172a', border: '1px solid #334155', color: '#fff', padding: '10px', borderRadius: '6px' },
-  modalActions: { display: 'flex', gap: '10px', marginTop: '8px' },
-  submitBtn: { flex: 1, backgroundColor: '#4f46e5', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' },
-  cancelBtn: { backgroundColor: '#334155', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer' }
+  logoBadge: {
+    width: '34px',
+    height: '34px',
+    borderRadius: '10px',
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    border: '1px solid rgba(99, 102, 241, 0.3)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0
+  },
+  brandTextGroup: { display: 'flex', flexDirection: 'column', justifyContent: 'center' },
+  brandTitle: { fontSize: '16px', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.02em', margin: 0, lineHeight: 1.2 },
+  brandSubtitle: { fontSize: '8.5px', fontWeight: '800', color: '#818cf8', letterSpacing: '0.08em', marginTop: '2px' },
+  searchWrapper: { position: 'relative', display: 'flex', alignItems: 'center' },
+  searchIcon: { position: 'absolute', left: '14px', display: 'flex', alignItems: 'center' },
+  searchInput: {
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    color: '#f8fafc',
+    padding: '8px 16px 8px 36px',
+    borderRadius: '20px',
+    width: '400px',
+    fontSize: '13px',
+    outline: 'none',
+    transition: 'all 0.2s'
+  },
+  navRightGroup: { display: 'flex', alignItems: 'center', gap: '14px' },
+  adminBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    backgroundColor: 'rgba(5, 150, 105, 0.15)',
+    border: '1px solid rgba(5, 150, 105, 0.3)',
+    color: '#34d399',
+    padding: '7px 14px',
+    borderRadius: '8px',
+    fontSize: '12px',
+    fontWeight: '600',
+    cursor: 'pointer'
+  },
+  signInBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+    color: '#ffffff',
+    padding: '7px 16px',
+    borderRadius: '8px',
+    fontSize: '12px',
+    fontWeight: '600',
+    cursor: 'pointer'
+  },
+  avatarCircle: {
+    width: '34px',
+    height: '34px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    border: '1px solid rgba(99, 102, 241, 0.4)',
+    color: '#e0e7ff',
+    fontWeight: '700',
+    fontSize: '12px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  profileDropdown: {
+    position: 'absolute',
+    right: 0,
+    top: '44px',
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    backdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '12px',
+    width: '220px',
+    padding: '12px',
+    zIndex: 200,
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
+  },
+  dropdownUserRow: { display: 'flex', alignItems: 'center', gap: '10px' },
+  dropdownAvatar: {
+    width: '30px',
+    height: '30px',
+    borderRadius: '50%',
+    backgroundColor: '#4f46e5',
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: '11px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  dropdownTextGroup: { display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' },
+  dropdownEmail: { fontSize: '11px', fontWeight: '600', color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  dropdownRoleBadge: { fontSize: '8px', color: '#818cf8', backgroundColor: 'rgba(99, 102, 241, 0.2)', padding: '1px 5px', borderRadius: '3px', fontWeight: '700', width: 'fit-content' },
+  dropdownDivider: { height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.08)', margin: '8px 0' },
+  dropdownItem: {
+    width: '100%',
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#cbd5e1',
+    textAlign: 'left',
+    padding: '6px',
+    borderRadius: '6px',
+    fontSize: '11px',
+    cursor: 'pointer',
+    fontWeight: '500'
+  },
+  mainContainer: { display: 'grid', gridTemplateColumns: '1fr 360px', gap: '28px', padding: '28px 36px', maxWidth: '1600px', margin: '0 auto', boxSizing: 'border-box' },
+  catalogColumn: { display: 'flex', flexDirection: 'column', gap: '20px' },
+  categoryFilterRow: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
+  categoryPill: {
+    border: '1px solid',
+    padding: '8px 18px',
+    borderRadius: '20px',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: '600',
+    backdropFilter: 'blur(10px)',
+    transition: 'all 0.2s'
+  },
+  courseGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '20px' },
+  courseCard: {
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: '14px',
+    padding: '22px',
+    cursor: 'pointer',
+    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+  },
+  cardMetaHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '12px' },
+  categoryBadge: { fontSize: '10px', color: '#818cf8', fontWeight: '800', letterSpacing: '0.04em' },
+  levelBadge: { fontSize: '10px', color: '#64748b', fontWeight: '500' },
+  cardTitle: { fontSize: '15px', fontWeight: '700', margin: '0 0 8px 0', color: '#f8fafc', lineHeight: '1.3' },
+  cardDesc: { fontSize: '12px', color: '#94a3b8', lineHeight: '1.5', height: '54px', overflow: 'hidden', margin: '0 0 14px 0' },
+  tagGroup: { display: 'flex', gap: '6px', marginBottom: '16px' },
+  tagPill: {
+    fontSize: '10px',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    border: '1px solid rgba(255, 255, 255, 0.06)',
+    color: '#38bdf8',
+    padding: '2px 8px',
+    borderRadius: '4px'
+  },
+  cardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '12px' },
+  ratingBox: { display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' },
+  ratingValue: { fontWeight: '700', color: '#f8fafc' },
+  studentCount: { color: '#64748b', fontSize: '11px' },
+  priceTag: { fontSize: '16px', fontWeight: '700', color: '#38bdf8' },
+  sidebarColumn: { display: 'flex', flexDirection: 'column', gap: '18px' },
+  agentCard: {
+    backgroundColor: 'rgba(30, 27, 75, 0.4)',
+    backdropFilter: 'blur(20px)',
+    border: '1px solid rgba(99, 102, 241, 0.3)',
+    borderRadius: '14px',
+    padding: '20px'
+  },
+  agentCardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' },
+  agentTitleGroup: { display: 'flex', alignItems: 'center', gap: '8px' },
+  pulseDot: { width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22c55e', boxShadow: '0 0 8px #22c55e' },
+  agentTitleText: { fontSize: '10px', fontWeight: '800', color: '#a5b4fc', letterSpacing: '0.06em' },
+  agentPitchText: { fontSize: '12px', lineHeight: '1.6', color: '#e0e7ff', margin: '0 0 16px 0' },
+  triggerBtnFull: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    backgroundColor: '#4f46e5',
+    color: '#ffffff',
+    border: 'none',
+    padding: '10px',
+    borderRadius: '8px',
+    fontWeight: '600',
+    fontSize: '12px',
+    cursor: 'pointer',
+    boxShadow: '0 4px 14px rgba(79, 70, 229, 0.3)'
+  },
+  intentCard: {
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    backdropFilter: 'blur(16px)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: '12px',
+    padding: '16px'
+  },
+  sidebarSectionLabel: { fontSize: '9px', color: '#64748b', fontWeight: '800', letterSpacing: '0.08em' },
+  intentText: { fontSize: '12px', color: '#38bdf8', fontWeight: '600', marginTop: '6px' },
+  telemetryCard: {
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    backdropFilter: 'blur(16px)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: '12px',
+    padding: '16px'
+  },
+  telemetryHeader: { display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '700', marginBottom: '12px', color: '#cbd5e1' },
+  liveIndicator: { color: '#22c55e', fontSize: '10px', fontWeight: '700' },
+  telemetryLogList: { display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' },
+  telemetryRow: {
+    display: 'flex',
+    justify: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(10, 13, 20, 0.6)',
+    padding: '8px 12px',
+    borderRadius: '6px',
+    fontSize: '11px',
+    border: '1px solid rgba(255, 255, 255, 0.04)'
+  },
+  eventTypeTag: { color: '#38bdf8', fontWeight: '600' },
+  eventTargetText: { color: '#94a3b8', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  eventTimeText: { color: '#475569', fontSize: '10px' },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    backdropFilter: 'blur(8px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000
+  },
+  modalBox: {
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '16px',
+    padding: '32px',
+    width: '400px'
+  },
+  modalTitle: { fontSize: '16px', fontWeight: '700', margin: '0 0 20px 0', color: '#f8fafc' },
+  formStack: { display: 'flex', flexDirection: 'column', gap: '14px' },
+  modalInput: {
+    backgroundColor: 'rgba(10, 13, 20, 0.8)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    color: '#f8fafc',
+    padding: '10px 12px',
+    borderRadius: '8px',
+    fontSize: '12px',
+    width: '100%',
+    boxSizing: 'border-box'
+  },
+  modalActions: { display: 'flex', gap: '10px', marginTop: '10px' },
+  btnPrimaryFull: { flex: 1, backgroundColor: '#4f46e5', color: '#fff', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' },
+  btnCancel: { backgroundColor: 'rgba(255, 255, 255, 0.08)', color: '#f8fafc', border: 'none', padding: '12px 18px', borderRadius: '8px', cursor: 'pointer' }
 };
