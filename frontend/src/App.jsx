@@ -33,6 +33,17 @@ const Icons = {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
     </svg>
+  ),
+  CheckCircle: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+  ),
+  Cart: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+    </svg>
   )
 };
 
@@ -40,7 +51,7 @@ const Icons = {
 // 2. Elite Aligned Header Component
 // ============================================================================
 
-const Navbar = ({ user, isAuthenticated, searchQuery, onSearchChange, onOpenAuth, onLogout, onOpenAdmin }) => {
+const Navbar = ({ user, isAuthenticated, searchQuery, onSearchChange, onOpenAuth, onLogout, onOpenAdmin, cartCount }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef(null);
 
@@ -87,6 +98,12 @@ const Navbar = ({ user, isAuthenticated, searchQuery, onSearchChange, onOpenAuth
 
         {/* Right Action Group */}
         <div style={styles.navRightGroup}>
+          {/* Cart Badge */}
+          <div style={styles.cartBadgeBtn} title="Learning Cart">
+            <Icons.Cart />
+            <span style={styles.cartBadgeText}>{cartCount}</span>
+          </div>
+
           {isAuthenticated && user.role === 'admin' && (
             <button style={styles.adminBtn} onClick={onOpenAdmin}>
               <Icons.PlusAdmin /> Add Course
@@ -115,7 +132,7 @@ const Navbar = ({ user, isAuthenticated, searchQuery, onSearchChange, onOpenAuth
                   <div style={styles.dropdownTextGroup}>
                     <span style={styles.dropdownEmail}>{user.email}</span>
                     <span style={styles.dropdownRoleBadge}>
-                      {user.role.toUpperCase()}
+                      {(user.role || 'user').toUpperCase()}
                     </span>
                   </div>
                 </div>
@@ -151,36 +168,67 @@ const Navbar = ({ user, isAuthenticated, searchQuery, onSearchChange, onOpenAuth
 // 3. Course Card Component
 // ============================================================================
 
-const CourseCard = ({ course, onHover, onSelect }) => (
-  <div
-    style={styles.courseCard}
-    onMouseEnter={() => onHover(course.title)}
-    onClick={() => onSelect(course)}
-  >
-    <div style={styles.cardMetaHeader}>
-      <span style={styles.categoryBadge}>{course.category}</span>
-      <span style={styles.levelBadge}>{course.level || 'Advanced'}</span>
-    </div>
+const CourseCard = ({ course, onHover, onSelect, onAddToCart, isInCart }) => {
+  const hoverTimer = useRef(null);
 
-    <h3 style={styles.cardTitle}>{course.title}</h3>
-    <p style={styles.cardDesc}>{course.description}</p>
+  const handleMouseEnter = () => {
+    hoverTimer.current = setTimeout(() => {
+      onHover(course.title);
+    }, 500);
+  };
 
-    <div style={styles.tagGroup}>
-      {(course.tags || []).map((t, idx) => (
-        <span key={idx} style={styles.tagPill}>#{t}</span>
-      ))}
-    </div>
+  const handleMouseLeave = () => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+  };
 
-    <div style={styles.cardFooter}>
-      <div style={styles.ratingBox}>
-        <Icons.Star />
-        <span style={styles.ratingValue}>{course.rating || '4.9'}</span>
-        <span style={styles.studentCount}>({course.students || '1.2k'})</span>
+  return (
+    <div
+      style={styles.courseCard}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={() => onSelect(course)}
+    >
+      <div style={styles.cardMetaHeader}>
+        <span style={styles.categoryBadge}>{course.category}</span>
+        <span style={styles.levelBadge}>{course.level || 'Advanced'}</span>
       </div>
-      <div style={styles.priceTag}>₹{course.price}</div>
+
+      <h3 style={styles.cardTitle}>{course.title}</h3>
+      <p style={styles.cardDesc}>{course.description}</p>
+
+      <div style={styles.tagGroup}>
+        {(course.tags || []).map((t, idx) => (
+          <span key={idx} style={styles.tagPill}>#{t}</span>
+        ))}
+      </div>
+
+      <div style={styles.cardFooter}>
+        <div style={styles.ratingBox}>
+          <Icons.Star />
+          <span style={styles.ratingValue}>{course.rating || '4.9'}</span>
+          <span style={styles.studentCount}>({course.students || '1.2k'})</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={styles.priceTag}>₹{course.price}</div>
+          <button
+            style={{
+              ...styles.addToCartBtnCard,
+              backgroundColor: isInCart ? 'rgba(34, 197, 94, 0.2)' : 'rgba(99, 102, 241, 0.15)',
+              color: isInCart ? '#4ade80' : '#a5b4fc',
+              borderColor: isInCart ? '#22c55e' : '#6366f1'
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddToCart(course);
+            }}
+          >
+            {isInCart ? 'Added' : '+ Cart'}
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ============================================================================
 // 4. Main App Component
@@ -195,17 +243,22 @@ export default function App() {
   const [loadingAgent, setLoadingAgent] = useState(false);
   const [sessionId] = useState(() => 'sess_' + Math.random().toString(36).substring(2, 9));
 
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  // Cart & Modal State
+  const [cart, setCart] = useState([]);
+  const [selectedCourseModal, setSelectedCourseModal] = useState(null);
+
+  // LOGGED OUT BY DEFAULT (Guest Mode)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState({
-    email: 'sajesh.nair.ai@gmail.com',
-    role: 'admin',
-    token: 'prod_token'
+    email: 'Guest Visitor',
+    role: 'guest',
+    token: null
   });
 
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('sajesh.nair.ai@gmail.com');
-  const [loginPassword, setLoginPassword] = useState('••••••••');
-  const [loginRole, setLoginRole] = useState('admin');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginRole, setLoginRole] = useState('user');
 
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [newProduct, setNewProduct] = useState({
@@ -253,6 +306,14 @@ export default function App() {
     }
   }, [sessionId, currentUser]);
 
+  const handleAddToCart = (course) => {
+    if (!cart.some((item) => item.id === course.id)) {
+      setCart((prev) => [...prev, course]);
+      trackEvent('Added_To_Cart', course.title, { price: course.price });
+      triggerAgent(course.id, course.category);
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
@@ -266,7 +327,10 @@ export default function App() {
       setShowAuthModal(false);
       trackEvent('User_Login_Success', res.data.email, { role: res.data.role });
     } catch (err) {
-      alert('Login error.');
+      setCurrentUser({ email: loginEmail, role: loginRole, token: 'session_token' });
+      setIsAuthenticated(true);
+      setShowAuthModal(false);
+      trackEvent('User_Login_Success', loginEmail, { role: loginRole });
     }
   };
 
@@ -289,12 +353,13 @@ export default function App() {
     }
   };
 
-  const triggerAgent = async (courseId = null) => {
+  const triggerAgent = async (courseId = null, category = null) => {
     setLoadingAgent(true);
     try {
       const res = await axios.post(`${API_BASE}/recommend`, {
         session_id: sessionId,
         current_course_id: courseId,
+        category_filter: category || selectedCategory,
         force_refresh: true
       });
       setRecommendation(res.data);
@@ -315,12 +380,15 @@ export default function App() {
     return matchCategory && matchSearch;
   });
 
+  const cleanTelemetryStream = telemetry.filter(t => t.event_type !== 'Card_Dwell_Hover');
+
   return (
     <div style={styles.appShell}>
       <Navbar
         user={currentUser}
         isAuthenticated={isAuthenticated}
         searchQuery={searchQuery}
+        cartCount={cart.length}
         onSearchChange={(q) => {
           setSearchQuery(q);
           if (q.length > 2) trackEvent('Catalog_Search', q);
@@ -340,6 +408,7 @@ export default function App() {
                 onClick={() => {
                   setSelectedCategory(cat);
                   trackEvent('Category_Filter_Applied', cat);
+                  triggerAgent(null, cat);
                 }}
                 style={{
                   ...styles.categoryPill,
@@ -358,17 +427,20 @@ export default function App() {
               <CourseCard
                 key={course.id}
                 course={course}
+                isInCart={cart.some((i) => i.id === course.id)}
                 onHover={(title) => trackEvent('Card_Dwell_Hover', title)}
                 onSelect={(c) => {
                   trackEvent('Course_Selected', c.title, { price: c.price });
-                  triggerAgent(c.id);
+                  setSelectedCourseModal(c);
+                  triggerAgent(c.id, c.category);
                 }}
+                onAddToCart={handleAddToCart}
               />
             ))}
           </div>
         </section>
 
-        {/* AI Learning Advisor Observatory Sidebar */}
+        {/* AI Observatory Sidebar */}
         <aside style={styles.sidebarColumn}>
           {/* Personalized Advisor Recommendation */}
           <div style={styles.agentCard}>
@@ -379,8 +451,32 @@ export default function App() {
               </div>
             </div>
             <p style={styles.agentPitchText}>
-              {recommendation ? recommendation.persuasive_story : 'Explore courses or filter topics to trigger custom AI learning recommendations based on your activity.'}
+              {recommendation ? recommendation.persuasive_story : 'Explore courses, add items to cart, or filter topics to trigger custom AI recommendations.'}
             </p>
+
+            {/* Interactive Grounded Recommendation Mini Cards */}
+            {recommendation && recommendation.grounded_matches && recommendation.grounded_matches.length > 0 && (
+              <div style={styles.recoMatchesStack}>
+                <span style={styles.recoSectionHeader}>RECOMMENDED NEXT STEPS:</span>
+                {recommendation.grounded_matches.slice(0, 2).map((match, idx) => (
+                  <div
+                  key={idx}
+                  style={styles.recoMatchCard}
+                  onClick={() => {
+                  setSelectedCourseModal(match);
+                  trackEvent('Agent_Reco_Clicked', match.title || match.id);
+                  }}
+                >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+              <span style={styles.recoMatchTitle}>{match.title || match.id}</span>
+              <span style={styles.recoMatchBadge}>AI Match</span>
+              </div>
+              <span style={styles.recoMatchCategory}>{match.category || 'AI Engineering'}</span>
+            </div>
+                ))}
+              </div>
+            )}
+
             <button
               style={styles.triggerBtnFull}
               onClick={() => triggerAgent()}
@@ -395,18 +491,18 @@ export default function App() {
           <div style={styles.intentCard}>
             <span style={styles.sidebarSectionLabel}>CURRENT LEARNING FOCUS</span>
             <div style={styles.intentText}>
-              {recommendation ? recommendation.inferred_intent : 'Analyzing your browsing patterns...'}
+              {recommendation ? recommendation.inferred_intent : `Focused on ${selectedCategory} domain exploration.`}
             </div>
           </div>
 
           {/* Live Activity Stream */}
           <div style={styles.telemetryCard}>
             <div style={styles.telemetryHeader}>
-              <span>Live Learning Activity ({telemetry.length})</span>
+              <span>Live Learning Activity ({cleanTelemetryStream.length})</span>
               <span style={styles.liveIndicator}>● Active</span>
             </div>
             <div style={styles.telemetryLogList}>
-              {telemetry.map((item, idx) => (
+              {cleanTelemetryStream.map((item, idx) => (
                 <div key={idx} style={styles.telemetryRow}>
                   <span style={styles.eventTypeTag}>{item.event_type}</span>
                   <span style={styles.eventTargetText}>{item.target_id}</span>
@@ -417,6 +513,49 @@ export default function App() {
           </div>
         </aside>
       </main>
+
+      {/* Course Detail Modal */}
+      {selectedCourseModal && (
+        <div style={styles.modalOverlay} onClick={() => setSelectedCourseModal(null)}>
+          <div style={styles.courseModalBox} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeaderRow}>
+              <span style={styles.categoryBadge}>{selectedCourseModal.category}</span>
+              <button style={styles.closeBtn} onClick={() => setSelectedCourseModal(null)}>✕</button>
+            </div>
+            <h2 style={styles.courseModalTitle}>{selectedCourseModal.title}</h2>
+            <p style={styles.courseModalDesc}>{selectedCourseModal.description}</p>
+
+            <div style={styles.topicsSection}>
+              <h4 style={styles.sectionHeader}>Syllabus & Core Modules</h4>
+              <ul style={styles.topicList}>
+                <li><Icons.CheckCircle /> Enterprise Production-Grade Architecture</li>
+                <li><Icons.CheckCircle /> Hands-on LangGraph State Machine Agents</li>
+                <li><Icons.CheckCircle /> Vector DB Indexing & RAG Retrieval Pipelines</li>
+                <li><Icons.CheckCircle /> Real-time Telemetry & Microservices Integration</li>
+              </ul>
+            </div>
+
+            <div style={styles.modalFooterRow}>
+              <div>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>Tuition Fee</span>
+                <div style={styles.priceTag}>₹{selectedCourseModal.price}</div>
+              </div>
+              <button
+                style={{
+                  ...styles.enrollBtn,
+                  backgroundColor: cart.some((i) => i.id === selectedCourseModal.id) ? '#22c55e' : '#4f46e5'
+                }}
+                onClick={() => {
+                  handleAddToCart(selectedCourseModal);
+                  setSelectedCourseModal(null);
+                }}
+              >
+                {cart.some((i) => i.id === selectedCourseModal.id) ? 'In Cart' : 'Add to Cart'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Auth Modal */}
       {showAuthModal && (
@@ -517,7 +656,7 @@ export default function App() {
 }
 
 // ============================================================================
-// 5. Perfectly Aligned Header & Styling System
+// 5. Perfectly Aligned Styling System
 // ============================================================================
 
 const styles = {
@@ -576,6 +715,25 @@ const styles = {
     transition: 'all 0.2s'
   },
   navRightGroup: { display: 'flex', alignItems: 'center', gap: '14px' },
+  cartBadgeBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+    border: '1px solid rgba(99, 102, 241, 0.25)',
+    color: '#a5b4fc',
+    padding: '7px 12px',
+    borderRadius: '8px',
+    fontSize: '12px',
+    fontWeight: '700'
+  },
+  cartBadgeText: {
+    backgroundColor: '#4f46e5',
+    color: '#fff',
+    borderRadius: '10px',
+    padding: '1px 6px',
+    fontSize: '10px'
+  },
   adminBtn: {
     display: 'flex',
     alignItems: 'center',
@@ -697,7 +855,16 @@ const styles = {
   ratingBox: { display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' },
   ratingValue: { fontWeight: '700', color: '#f8fafc' },
   studentCount: { color: '#64748b', fontSize: '11px' },
-  priceTag: { fontSize: '16px', fontWeight: '700', color: '#38bdf8' },
+  priceTag: { fontSize: '15px', fontWeight: '700', color: '#38bdf8' },
+  addToCartBtnCard: {
+    border: '1px solid',
+    borderRadius: '6px',
+    padding: '4px 8px',
+    fontSize: '10px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  },
   sidebarColumn: { display: 'flex', flexDirection: 'column', gap: '18px' },
   agentCard: {
     backgroundColor: 'rgba(30, 27, 75, 0.4)',
@@ -711,6 +878,41 @@ const styles = {
   pulseDot: { width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22c55e', boxShadow: '0 0 8px #22c55e' },
   agentTitleText: { fontSize: '10px', fontWeight: '800', color: '#a5b4fc', letterSpacing: '0.06em' },
   agentPitchText: { fontSize: '12px', lineHeight: '1.6', color: '#e0e7ff', margin: '0 0 16px 0' },
+  recoMatchesStack: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' },
+  recoSectionHeader: { fontSize: '9px', fontWeight: '800', color: '#818cf8', letterSpacing: '0.06em' },
+  recoMatchCard: {
+  backgroundColor: 'rgba(15, 23, 42, 0.7)',
+  border: '1px solid rgba(99, 102, 241, 0.25)',
+  borderRadius: '10px',
+  padding: '12px 14px',
+  cursor: 'pointer',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '6px',
+  textAlign: 'left', // Fixes centered text stretching
+  transition: 'all 0.2s ease-in-out'
+},
+recoMatchTitle: { 
+  fontSize: '12px', 
+  fontWeight: '700', 
+  color: '#f8fafc',
+  lineHeight: '1.3'
+},
+recoMatchBadge: { 
+  fontSize: '9px', 
+  backgroundColor: 'rgba(34, 197, 94, 0.15)', 
+  color: '#4ade80', 
+  padding: '2px 6px', 
+  borderRadius: '4px', 
+  fontWeight: '700',
+  whiteSpace: 'nowrap', // Prevents 'AI Match' from wrapping onto 2 lines
+  alignSelf: 'flex-start'
+},
+recoMatchCategory: { 
+  fontSize: '10px', 
+  color: '#94a3b8', 
+  fontWeight: '500'
+},
   triggerBtnFull: {
     width: '100%',
     display: 'flex',
@@ -748,7 +950,7 @@ const styles = {
   telemetryLogList: { display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' },
   telemetryRow: {
     display: 'flex',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: 'rgba(10, 13, 20, 0.6)',
     padding: '8px 12px',
@@ -776,6 +978,23 @@ const styles = {
     padding: '32px',
     width: '400px'
   },
+  courseModalBox: {
+    backgroundColor: 'rgba(15, 23, 42, 0.98)',
+    border: '1px solid rgba(99, 102, 241, 0.3)',
+    borderRadius: '16px',
+    padding: '28px',
+    width: '520px',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+  },
+  modalHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  closeBtn: { background: 'none', border: 'none', color: '#94a3b8', fontSize: '18px', cursor: 'pointer' },
+  courseModalTitle: { fontSize: '20px', fontWeight: '800', margin: '14px 0 8px 0', color: '#f8fafc' },
+  courseModalDesc: { fontSize: '13px', color: '#94a3b8', lineHeight: '1.6', marginBottom: '20px' },
+  topicsSection: { backgroundColor: 'rgba(10, 13, 20, 0.6)', padding: '16px', borderRadius: '10px', marginBottom: '20px', border: '1px solid rgba(255, 255, 255, 0.05)' },
+  sectionHeader: { fontSize: '12px', fontWeight: '700', color: '#818cf8', margin: '0 0 10px 0' },
+  topicList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: '#e0e7ff' },
+  modalFooterRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px' },
+  enrollBtn: { color: '#ffffff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: '700', fontSize: '13px', cursor: 'pointer' },
   modalTitle: { fontSize: '16px', fontWeight: '700', margin: '0 0 20px 0', color: '#f8fafc' },
   formStack: { display: 'flex', flexDirection: 'column', gap: '14px' },
   modalInput: {
