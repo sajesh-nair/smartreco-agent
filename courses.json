@@ -1,0 +1,206 @@
+[
+  {
+    "id": "course-1",
+    "title": "Agentic AI Systems Masterclass",
+    "category": "Agentic AI",
+    "level": "Advanced",
+    "price": 4999,
+    "rating": 4.9,
+    "students": "2,187",
+    "tags": ["LangGraph", "CrewAI", "Multi-Agent"],
+    "description": "Master building autonomous AI agents and stateful multi-agent workflows using LangGraph and modern orchestration frameworks.",
+    "curriculum": [
+      { "num": 1, "title": "State Machines & ReAct loops for Agents" },
+      { "num": 2, "title": "Tool Routing & Dynamic Function Calling" },
+      { "num": 3, "title": "Working Memory & Scratchpads with Redis" },
+      { "num": 4, "title": "Multi-Agent Orchestration & Graph Compilation" }
+    ]
+  },
+  {
+    "id": "course-2",
+    "title": "Building Production RAG Systems",
+    "category": "Generative AI",
+    "level": "Intermediate",
+    "price": 3499,
+    "rating": 4.8,
+    "students": "3,210",
+    "tags": ["ChromaDB", "Embeddings", "Hybrid Search"],
+    "description": "Ship retrieval systems that hold up under heavy traffic using hybrid search, re-ranking, and custom vector embeddings.",
+    "curriculum": [
+      { "num": 1, "title": "Chunking Strategies & Metadata Enrichment" },
+      { "num": 2, "title": "Dense vs Sparse Vector Indexing" },
+      { "num": 3, "title": "Cross-Encoder Re-Ranking Pipelines" },
+      { "num": 4, "title": "RAG Evaluation Frameworks (Ragas & TruLens)" }
+    ]
+  },
+  {
+    "id": "course-3",
+    "title": "MLOps for High-Throughput Teams",
+    "category": "MLOps",
+    "level": "Advanced",
+    "price": 4499,
+    "rating": 4.7,
+    "students": "1,840",
+    "tags": ["Kubernetes", "MLflow", "Triton"],
+    "description": "The pipeline, review, and rollout infrastructure mature ML engineering teams share for zero-downtime deployments.",
+    "curriculum": [
+      { "num": 1, "title": "Automated Model Registry & Version Lineage" },
+      { "num": 2, "title": "Canary Rollouts with Triton Inference Server" },
+      { "num": 3, "title": "Feature Store Architecture with Feast" },
+      { "num": 4, "title": "Data Drift & Continuous Retraining Triggers" }
+    ]
+  },
+  {
+    "id": "course-4",
+    "title": "LLM Fine-Tuning & Quantization",
+    "category": "Generative AI",
+    "level": "Advanced",
+    "price": 5999,
+    "rating": 4.9,
+    "students": "1,450",
+    "tags": ["LoRA", "vLLM", "Unsloth"],
+    "description": "Fine-tune open-weights models like Llama 3 and Mistral using QLoRA and deploy optimized inference pipelines.",
+    "curriculum": [
+      { "num": 1, "title": "Dataset Preparation & Instruction Formatting" },
+      { "num": 2, "title": "PEFT & QLoRA Parameter Efficient Tuning" },
+      { "num": 3, "title": "GGUF / AWQ 4-bit Quantization Techniques" },
+      { "num": 4, "title": "High-Speed Inference Deployment with vLLM" }
+    ]
+  },
+  {
+    "id": "course-5",
+    "title": "Full-Stack AI Engineering with FastAPI & React",
+    "category": "Cloud & DevOps",
+    "level": "Intermediate",
+    "price": 2999,
+    "rating": 4.8,
+    "students": "4,120",
+    "tags": ["FastAPI", "React", "Server-Sent Events"],
+    "description": "Build production web apps with real-time SSE streaming, async event queues, and responsive React dashboards.",
+    "curriculum": [
+      { "num": 1, "title": "Async FastAPI Endpoints & WebSockets" },
+      { "num": 2, "title": "Real-time Token Streaming in React UI" },
+      { "num": 3, "title": "State Management for Agentic Dashboards" },
+      { "num": 4, "title": "Dockerizing & Deploying Full-Stack AI Services" }
+    ]
+  },
+  {
+    "id": "course-6",
+    "title": "System Design for Scale & AI Infrastructure",
+    "category": "Cloud & DevOps",
+    "level": "Advanced",
+    "price": 4499,
+    "rating": 4.9,
+    "students": "2,890",
+    "tags": ["Kafka", "Redis", "Distributed Systems"],
+    "description": "Architect high-throughput backend systems capable of processing millions of real-time behavioral telemetry streams.",
+    "curriculum": [
+      { "num": 1, "title": "Event-Driven Telemetry Buffers with Apache Kafka" },
+      { "num": 2, "title": "Distributed Caching & Session Stores using Redis" },
+      { "num": 3, "title": "Rate Limiting & Token Bucket Algorithms" },
+      { "num": 4, "title": "Horizontal Scaling of Vector Databases" }
+    ]
+  },
+  {
+    "id": "course-7",
+    "title": "Enterprise Data Engineering with Spark & Iceberg",
+    "category": "Data Engineering",
+    "level": "Intermediate",
+    "price": 3899,
+    "rating": 4.7,
+    "students": "1,670",
+    "tags": ["PySpark", "Apache Iceberg", "Delta Lake"],
+    "description": "Construct scalable Lakehouse architectures with ACID transactions, schema evolution, and time-travel querying.",
+    "curriculum": [
+      { "num": 1, "title": "Batch & Streaming Pipelines with PySpark" },
+      { "num": 2, "title": "Apache Iceberg Table Format Mechanics" },
+      { "num": 3, "title": "Data Governance & Quality Checks with Great Expectations" },
+      { "num": 4, "title": "Orchestrating Complex Pipelines using Dagster" }
+    ]
+  },
+  {
+    "id": "course-8",
+    "title": "Autonomous Coding Agents & Software Synthesis",
+    "category": "Agentic AI",
+    "level": "Advanced",
+    "price": 5499,
+    "rating": 4.9,
+    "students": "1,110",
+    "tags": ["Code Generation", "AST Analysis", "Sandboxing"],
+    "description": "Engine autonomous coding agents that write code, execute tests in secure Docker sandboxes, and self-correct bugs.",
+    "curriculum": [
+      { "num": 1, "title": "Parsing Code via Abstract Syntax Trees (AST)" },
+      { "num": 2, "title": "Isolated Code Execution in Docker Containers" },
+      { "num": 3, "title": "Automated Unit Test Generation & Reflection Loops" },
+      { "num": 4, "title": "Git Branch Management by AI Agents" }
+    ]
+  },
+  {
+    "id": "course-9",
+    "title": "Multimodal AI & Computer Vision Pipelines",
+    "category": "Generative AI",
+    "level": "Intermediate",
+    "price": 4199,
+    "rating": 4.8,
+    "students": "1,980",
+    "tags": ["CLIP", "Whisper", "Vision-LLMs"],
+    "description": "Process and analyze audio, video, and image streams using CLIP embeddings and Vision-Language Models.",
+    "curriculum": [
+      { "num": 1, "title": "Cross-Modal Embeddings with OpenAI CLIP" },
+      { "num": 2, "title": "Speech Recognition & Audio Telemetry via Whisper" },
+      { "num": 3, "title": "Visual Question Answering (VQA) Architecture" },
+      { "num": 4, "title": "Real-time Video Processing Streams" }
+    ]
+  },
+  {
+    "id": "course-10",
+    "title": "Prompt Engineering & Advanced Guardrails",
+    "category": "Generative AI",
+    "level": "Beginner-Intermediate",
+    "price": 2499,
+    "rating": 4.6,
+    "students": "5,400",
+    "tags": ["NeMo Guardrails", "DSPy", "Security"],
+    "description": "Programmatic prompt compilation with DSPy and robust security guardrails to prevent prompt injection attacks.",
+    "curriculum": [
+      { "num": 1, "title": "Systematic Optimization with DSPy Signatures" },
+      { "num": 2, "title": "PII Masking & Output Validation Frameworks" },
+      { "num": 3, "title": "Defending against Jailbreaks & Indirect Injection" },
+      { "num": 4, "title": "Structured JSON / Pydantic Output Enforcement" }
+    ]
+  },
+  {
+    "id": "course-11",
+    "title": "Real-Time Feature Store & Streaming Analytics",
+    "category": "Data Engineering",
+    "level": "Advanced",
+    "price": 3799,
+    "rating": 4.7,
+    "students": "1,320",
+    "tags": ["Flink", "ClickHouse", "Feast"],
+    "description": "Compute ultra-low latency behavioral features for real-time machine learning inference engines.",
+    "curriculum": [
+      { "num": 1, "title": "Stateful Stream Processing with Apache Flink" },
+      { "num": 2, "title": "High-Speed Analytics Querying with ClickHouse" },
+      { "num": 3, "title": "Serving Real-Time Online Features via Feast" },
+      { "num": 4, "title": "Sub-millisecond Session Window Aggregations" }
+    ]
+  },
+  {
+    "id": "course-12",
+    "title": "Cloud-Native Infrastructure with Terraform & AWS",
+    "category": "Cloud & DevOps",
+    "level": "Intermediate",
+    "price": 3299,
+    "rating": 4.8,
+    "students": "3,450",
+    "tags": ["Terraform", "AWS EKS", "GitOps"],
+    "description": "Automate cloud infrastructure provisioning for AI workloads using Terraform, Helm, and GitOps workflows.",
+    "curriculum": [
+      { "num": 1, "title": "Modular Infrastructure as Code with Terraform" },
+      { "num": 2, "title": "Provisioning AWS EKS GPU Clusters" },
+      { "num": 3, "title": "GitOps Deployment Pipelines with ArgoCD" },
+      { "num": 4, "title": "Cost Optimization & Auto-scaling for AI Models" }
+    ]
+  }
+]
