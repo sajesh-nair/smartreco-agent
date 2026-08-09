@@ -48,7 +48,7 @@ flowchart TD
 
 ### Block 2: Architectural Highlights, Tech Stack, Installation Setup & Demo Link
 
-```markdown
+
 ## Key Architectural Highlights
 
 * **Asynchronous Telemetry:** Non-blocking capture of real-time user behavioral signals into a live observatory stream without main-thread UI latency.
@@ -106,6 +106,4 @@ cd ../frontend
 npm install
 npm run dev
 Project Demo
-YouTube Walkthrough: Aura Academy Demo
-
-http://googleusercontent.com/youtube_content/1
+YouTube Walkthrough: https://youtu.be/cpmeg8nR8WI
