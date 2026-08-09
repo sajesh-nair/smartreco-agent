@@ -34,15 +34,19 @@ def _build_searchable_text(course: Dict[str, Any]) -> str:
     
     return f"Title: {title} | Category: {category} | Level: {level} | Tags: {tags} | Description: {description}"
 
-def seed_vector_store_from_json(json_file_path: str) -> None:
+def seed_vector_store_from_json(json_file_path: str, force_reseed: bool = False) -> None:
     """
-    Seeds ChromaDB from courses.json on boot if collection is empty.
-    Satisfies catalog dual-write requirements.
+    Seeds ChromaDB from courses.json on boot.
+    Fully populates all fields required by UI modals and RAG queries.
     """
     try:
-        if collection.count() > 0:
-            logger.info(f"ChromaDB collection '{COLLECTION_NAME}' active with {collection.count()} items. Skipping seed.")
-            return
+        # Reseed if collection is missing complete metadata keys or on explicit request
+        if collection.count() > 0 and not force_reseed:
+            sample = collection.get(limit=1)
+            if sample and "metadatas" in sample and sample["metadatas"]:
+                if "description" in sample["metadatas"][0]:
+                    logger.info(f"ChromaDB collection '{COLLECTION_NAME}' active with {collection.count()} complete items. Skipping seed.")
+                    return
 
         if not os.path.exists(json_file_path):
             logger.warning(f"Catalog file missing for seeding: {json_file_path}")
@@ -67,7 +71,10 @@ def seed_vector_store_from_json(json_file_path: str) -> None:
                 "category": course.get("category", ""),
                 "level": course.get("level", "Intermediate"),
                 "price": float(course.get("price", 0.0)),
-                "rating": float(course.get("rating", 4.8))
+                "rating": float(course.get("rating", 4.8)),
+                "students": str(course.get("students", "1,200")),
+                "description": course.get("description", ""),
+                "tags": json.dumps(course.get("tags", [])) if isinstance(course.get("tags"), list) else str(course.get("tags", "[]"))
             }
 
             documents.append(doc_text)
@@ -79,7 +86,7 @@ def seed_vector_store_from_json(json_file_path: str) -> None:
             metadatas=metadatas,
             ids=ids
         )
-        logger.info(f"Successfully populated vector store with {len(ids)} courses.")
+        logger.info(f"Successfully populated vector store with {len(ids)} fully detailed course vectors.")
 
     except Exception as e:
         logger.error(f"Vector store seed error: {str(e)}")
@@ -98,7 +105,10 @@ def upsert_product_vector(course: Dict[str, Any]) -> bool:
             "category": course.get("category", ""),
             "level": course.get("level", "Intermediate"),
             "price": float(course.get("price", 0.0)),
-            "rating": float(course.get("rating", 4.8))
+            "rating": float(course.get("rating", 4.8)),
+            "students": str(course.get("students", "1,200")),
+            "description": course.get("description", ""),
+            "tags": json.dumps(course.get("tags", [])) if isinstance(course.get("tags"), list) else str(course.get("tags", "[]"))
         }
 
         collection.upsert(
@@ -106,7 +116,7 @@ def upsert_product_vector(course: Dict[str, Any]) -> bool:
             metadatas=[meta],
             ids=[course_id]
         )
-        logger.info(f"Dual-write successful: Product '{course_id}' synced to ChromaDB.")
+        logger.info(f"Dual-write successful: Product '{course_id}' synced to ChromaDB with full metadata.")
         return True
 
     except Exception as e:
@@ -116,7 +126,7 @@ def upsert_product_vector(course: Dict[str, Any]) -> bool:
 def query_vector_store(search_text: str, top_k: int = 3) -> List[Dict[str, Any]]:
     """
     Performs semantic vector query over course embeddings.
-    Returns grounded catalog metadata matches.
+    Returns grounded catalog matches with fully deserialized metadata.
     """
     try:
         if collection.count() == 0:
@@ -131,7 +141,14 @@ def query_vector_store(search_text: str, top_k: int = 3) -> List[Dict[str, Any]]
         retrieved_products = []
         if results and "metadatas" in results and results["metadatas"]:
             for meta in results["metadatas"][0]:
-                retrieved_products.append(meta)
+                item = dict(meta)
+                # Safely parse tags back into list for frontend consumption
+                if isinstance(item.get("tags"), str):
+                    try:
+                        item["tags"] = json.loads(item["tags"])
+                    except Exception:
+                        item["tags"] = [item["tags"]]
+                retrieved_products.append(item)
 
         return retrieved_products
 

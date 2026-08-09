@@ -45,13 +45,13 @@ class RecommendationState(TypedDict):
     final_pitch: str
 
 # ------------------------------------------------------------------------------
-# 3. Node 1: Analyze Behavioral Telemetry with Weighted Context Signals
+# 3. Node 1: Analyze Behavioral Telemetry with Dynamic Target Parsing
 # ------------------------------------------------------------------------------
 @traceable(name="Node_AnalyzeTelemetry")
 def analyze_telemetry_node(state: RecommendationState) -> Dict[str, Any]:
     """
-    Parses recent behavioral events, applying event-type weightings to compute
-    a high-precision semantic intent string for downstream retrieval.
+    Parses recent behavioral events, accurately extracting intent signals from 
+    event_type, target_id, and metadata to build a dynamic semantic query.
     """
     logs = state.get("telemetry_logs", [])
     if not logs:
@@ -62,31 +62,39 @@ def analyze_telemetry_node(state: RecommendationState) -> Dict[str, Any]:
     
     categories = []
     queries = []
-    titles = []
-    tags = []
+    selected_courses = []
+    cart_courses = []
 
     for event in recent_events:
+        event_type = event.get("event_type", "")
+        target_id = event.get("target_id", "")
         meta = event.get("metadata", {})
-        event_type = event.get("event_type", "").lower()
 
-        if meta.get("query"):
-            queries.append(f"search:'{meta['query']}'")
+        if event_type == "Category_Filter_Applied" and target_id and target_id != "All":
+            categories.append(target_id)
+        elif event_type == "Course_Selected" and target_id:
+            selected_courses.append(target_id)
+        elif event_type == "Added_To_Cart" and target_id:
+            cart_courses.append(target_id)
+        elif event_type == "Catalog_Search" and target_id:
+            queries.append(target_id)
+
+        # Fallback check inside metadata
         if meta.get("category") and meta.get("category") != "All":
             categories.append(meta["category"])
-        if meta.get("title"):
-            titles.append(meta["title"])
-        if meta.get("tag"):
-            tags.append(meta["tag"])
+        if meta.get("query"):
+            queries.append(meta["query"])
 
+    # Build clear, high-precision intent signals
     intent_signals = []
-    if queries:
-        intent_signals.append(f"Active queries: {', '.join(set(queries))}")
+    if cart_courses:
+        intent_signals.append(f"High intent cart item: {cart_courses[-1]}")
+    if selected_courses:
+        intent_signals.append(f"Inspecting course: {selected_courses[-1]}")
     if categories:
-        intent_signals.append(f"Domain interest: {categories[-1]}")
-    if titles:
-        intent_signals.append(f"Inspecting catalog items: {', '.join(set(titles[-2:]))}")
-    if tags:
-        intent_signals.append(f"Focus topics: #{', '.join(set(tags))}")
+        intent_signals.append(f"Active domain filter: {categories[-1]}")
+    if queries:
+        intent_signals.append(f"Search queries: {', '.join(set(queries))}")
 
     if intent_signals:
         inferred = " | ".join(intent_signals)
@@ -102,7 +110,7 @@ def analyze_telemetry_node(state: RecommendationState) -> Dict[str, Any]:
 @traceable(name="Node_VectorRetrieval")
 def vector_retrieval_node(state: RecommendationState) -> Dict[str, Any]:
     """
-    Queries ChromaDB vector database using the inferred user intent string.
+    Queries ChromaDB vector database using the dynamically computed user intent string.
     """
     intent = state.get("inferred_intent", "General software development")
     try:
@@ -115,7 +123,7 @@ def vector_retrieval_node(state: RecommendationState) -> Dict[str, Any]:
     return {"retrieved_products": retrieved}
 
 # ------------------------------------------------------------------------------
-# 5. Node 3: Mesh API Persuasive Pitch Generation with Failover
+# 5. Node 3: Mesh API Persuasive Pitch Generation with Contextual Fallbacks
 # ------------------------------------------------------------------------------
 @traceable(name="Node_GeneratePersuasion")
 def persuasion_generation_node(state: RecommendationState) -> Dict[str, Any]:
@@ -141,7 +149,7 @@ def persuasion_generation_node(state: RecommendationState) -> Dict[str, Any]:
     ))
 
     try:
-        if not MESH_API_KEY or MESH_API_KEY.startswith("your_"):
+        if not MESH_API_KEY or MESH_API_KEY.startswith("your_") or MESH_API_KEY == "placeholder_key":
             raise ValueError("Mesh API Key unconfigured or using template default.")
 
         response = llm.invoke([sys_msg, usr_msg])
@@ -154,14 +162,16 @@ def persuasion_generation_node(state: RecommendationState) -> Dict[str, Any]:
         intent_lower = intent.lower()
         if any(kw in intent_lower for kw in ["cloud", "devops", "kubernetes", "aws", "terraform"]):
             pitch = "Focusing on Cloud & DevOps — master production Kubernetes, Terraform automation, and high-availability cloud architecture!"
-        elif any(kw in intent_lower for kw in ["rag", "generative", "llm", "vector"]):
-            pitch = "High engagement with Generative AI detected — master hybrid vector retrieval, re-ranking pipelines, and RAG optimization!"
-        elif any(kw in intent_lower for kw in ["agent", "langgraph", "agentic"]):
+        elif any(kw in intent_lower for kw in ["rag", "generative", "llm", "vector", "prompt", "multimodal"]):
+            pitch = "High engagement with Generative AI detected — master hybrid vector retrieval, fine-tuning, and production RAG pipelines!"
+        elif any(kw in intent_lower for kw in ["agent", "langgraph", "agentic", "software synthesis"]):
             pitch = "Exploring Agentic AI — master state machines in LangGraph to build resilient, autonomous multi-agent systems!"
-        elif any(kw in intent_lower for kw in ["fastapi", "python", "backend"]):
+        elif any(kw in intent_lower for kw in ["mlops", "triton", "model serving", "data engineering", "spark"]):
+            pitch = "Deep diving into MLOps & Data Systems — master high-throughput inference pipelines, Spark streaming, and model monitoring!"
+        elif any(kw in intent_lower for kw in ["fastapi", "python", "backend", "full-stack"]):
             pitch = "Optimizing backend infrastructure — dive into high-throughput FastAPI architecture, async processing, and microservice resilience!"
         else:
-            pitch = f"Based on your active learning session ({intent}), we recommend exploring our production-grade architecture and multi-agent AI paths."
+            pitch = f"Based on your active learning session ({intent}), we recommend exploring our production-grade architecture and targeted skill paths."
 
     return {"final_pitch": pitch}
 

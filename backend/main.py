@@ -131,6 +131,7 @@ class TelemetryEvent(BaseModel):
 class RecommendationRequest(BaseModel):
     session_id: str
     current_course_id: Optional[str] = None
+    category_filter: Optional[str] = None
     force_refresh: Optional[bool] = False
 
 class ProductCatalogItem(BaseModel):
@@ -146,7 +147,8 @@ class ProductCatalogItem(BaseModel):
 
 @app.post("/api/auth/login")
 def user_login(req: AuthLoginRequest):
-    is_admin = req.email.lower().startswith("admin") or req.role.lower() == "admin"
+    selected_role = req.role.lower()
+    is_admin = selected_role == "admin" or req.email.lower().startswith("admin")
     return {
         "status": "success",
         "email": req.email,
@@ -179,15 +181,40 @@ def track_event(event: TelemetryEvent):
 def generate_recommendations(req: RecommendationRequest):
     session_id = req.session_id.strip()
     session_logs = SESSION_DB.get(session_id, [])
-    
-    if not session_logs:
-        return {
-            "session_id": session_id,
-            "inferred_intent": "Session initialized. Awaiting user interaction...",
-            "persuasive_story": "Filter categories, search topics, or select courses to generate real-time recommendations.",
-            "grounded_matches": [],
-            "cached": False
+
+    # If telemetry is triggered directly with course_id or category_filter
+    if req.current_course_id:
+        synth_event = {
+            "event_type": "Course_Selected",
+            "target_id": req.current_course_id,
+            "metadata": {"source": "direct_click"},
+            "timestamp": time.time()
         }
+        if session_id not in SESSION_DB:
+            SESSION_DB[session_id] = []
+        SESSION_DB[session_id].append(synth_event)
+        session_logs = SESSION_DB[session_id]
+
+    elif req.category_filter and req.category_filter != "All":
+        synth_event = {
+            "event_type": "Category_Filter_Applied",
+            "target_id": req.category_filter,
+            "metadata": {"source": "filter_click"},
+            "timestamp": time.time()
+        }
+        if session_id not in SESSION_DB:
+            SESSION_DB[session_id] = []
+        SESSION_DB[session_id].append(synth_event)
+        session_logs = SESSION_DB[session_id]
+
+    # Fallback synthetic event if logs are completely empty
+    if not session_logs:
+        session_logs = [{
+            "event_type": "Category_Filter_Applied",
+            "target_id": "Agentic AI",
+            "metadata": {"source": "default_boost"},
+            "timestamp": time.time()
+        }]
 
     initial_graph_state = {
         "session_id": session_id,
