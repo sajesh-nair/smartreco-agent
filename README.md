@@ -43,7 +43,7 @@ flowchart TD
     Agent -->|5. Vector Search Query| Chroma
     Chroma -->|6. Relevant Course Context| Agent
     Agent -->|7. Evaluated Pitch & Matches| Advisor
-
+```
  ---
 
 ### Block 2: Architectural Highlights, Tech Stack, Installation Setup & Demo Link
