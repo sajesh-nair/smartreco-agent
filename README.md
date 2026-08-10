@@ -81,44 +81,37 @@ flowchart TD
    ```bash
    git clone https://github.com/sajesh-nair/smartreco-agent.git
    cd smartreco-agent
-Configure Environment Variables:
 
-Copy .env.example to .env in the root directory and set your Mesh API key:
+### Configure Environment Variables
 
-Bash
+Copy `.env.example` to `.env` in the root directory and set your Mesh API key:
 
+```bash
 cp .env.example .env
 
-Open .env and set:
+```
+Open `.env` and set:
 
-Code snippet
-
+```env
 MESH_API_KEY=your_actual_mesh_api_key
+```
 
-Set up Backend:
-
-Bash
-
-
+Set up Backend
+```bash
 cd backend
 python -m venv venv
-
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
+source venv/bin/activate # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
 uvicorn main:app --reload
+```
 
-Set up Frontend:
+Set up Frontend
 
-Bash
-
+```bash
 cd ../frontend
-
 npm install
-
 npm run dev
+```
 
 Project Demo
-
 YouTube Walkthrough: https://youtu.be/cpmeg8nR8WI
