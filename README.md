@@ -86,24 +86,39 @@ Configure Environment Variables:
 Copy .env.example to .env in the root directory and set your Mesh API key:
 
 Bash
+
 cp .env.example .env
+
 Open .env and set:
 
 Code snippet
+
 MESH_API_KEY=your_actual_mesh_api_key
+
 Set up Backend:
 
 Bash
+
+
 cd backend
 python -m venv venv
+
 source venv/bin/activate  # On Windows: venv\Scripts\activate
+
 pip install -r requirements.txt
+
 uvicorn main:app --reload
+
 Set up Frontend:
 
 Bash
+
 cd ../frontend
+
 npm install
+
 npm run dev
+
 Project Demo
+
 YouTube Walkthrough: https://youtu.be/cpmeg8nR8WI
